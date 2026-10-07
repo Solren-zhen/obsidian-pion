@@ -20,8 +20,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # No dependencies: the plugin has no build step and the test harness only
-      # uses Node built-ins. This keeps CI fast and the supply chain empty.
+      # No runtime dependencies: the test harness only uses Node built-ins, and the
+      # plugin ships as a self-contained bundle. `npm ci` is still used because it fails
+      # when package.json and package-lock.json disagree, which keeps the lockfile
+      # honest (and is what the directory's build-verification check looks for).
+      - name: Install (lockfile-exact, zero dependencies)
+        run: npm ci --no-audit --no-fund
       - name: Verify the committed bundle is up to date with src/
         run: npm run check:bundle
 

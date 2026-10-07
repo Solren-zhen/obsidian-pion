@@ -53,6 +53,9 @@ jobs:
       - name: Verify the committed bundle is up to date with src/
         run: npm run check:bundle
 
+      - name: Install (lockfile-exact, zero dependencies)
+        run: npm ci --no-audit --no-fund
+
       - name: Build
         run: npm run build
 
