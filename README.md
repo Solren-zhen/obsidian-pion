@@ -7,6 +7,9 @@
 A 🎓 study coach you can configure for any subject, and 💻 your daily coding agent —
 sharing credentials, never sharing context.
 
+<sub>Plugin id `pion` · repo `obsidian-pion` · not to be confused with the unrelated `pi-agent`
+plugin in the community directory.</sub>
+
 [![CI](https://github.com/Solren-zhen/obsidian-pion/actions/workflows/ci.yml/badge.svg)](https://github.com/Solren-zhen/obsidian-pion/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![No dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)
