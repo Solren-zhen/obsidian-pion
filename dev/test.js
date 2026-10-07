@@ -633,7 +633,8 @@ function evThinking() {
 
   console.log('\n== 14. study presets are generic (no hard-coded subject) ==');
   {
-    const sp = require(path.join(__dirname, '..', 'study-profile.js'));
+    // Presets live in the source module; the built bundle inlines a copy of it.
+    const sp = require(path.join(__dirname, '..', 'src', 'study-profile.js'));
     const os2 = require('os');
     const tmp = fs.mkdtempSync(path.join(os2.tmpdir(), 'preset-'));
     fs.writeFileSync(path.join(tmp, 'models.json'), '{}');
@@ -683,6 +684,62 @@ function evThinking() {
       assert.strictEqual(syn.detected, false);
       assert.strictEqual(syn.singleLine, '::');
     });
+  }
+
+
+  console.log('\n== 15. distribution artifact is self-contained ==');
+  {
+    // A user installing from the community directory receives ONLY main.js, manifest.json
+    // and styles.css. If the plugin requires any other file at load time it crashes for
+    // every one of them, while still working in a dev vault. Simulate that install.
+    const os3 = require('os');
+    const dist = fs.mkdtempSync(path.join(os3.tmpdir(), 'pion-dist-'));
+    for (const f of ['main.js', 'manifest.json', 'styles.css']) {
+      fs.copyFileSync(path.join(PLUGIN_DIR, f), path.join(dist, f));
+    }
+
+    check('dist dir contains only the three shipped files', () => {
+      assert.deepStrictEqual(fs.readdirSync(dist).sort(), ['main.js', 'manifest.json', 'styles.css']);
+    });
+
+    check('shipped main.js has no runtime require of study-profile.js', () => {
+      const src = fs.readFileSync(path.join(dist, 'main.js'), 'utf8');
+      assert.ok(!/require\(\s*['"]\.\/study-profile\.js['"]\s*\)/.test(src),
+        'main.js must not require a sibling module at runtime');
+      assert.ok(src.includes('bundled module: study-profile.js'),
+        'study-profile.js should be inlined into the bundle');
+    });
+
+    check('plugin loads and runs from the distribution dir alone', async () => { /* checked below */ });
+
+    // Load the copied bundle with everything resolved relative to the dist dir.
+    const distMain = path.join(dist, 'main.js');
+    global.__PI_APP__ = app;
+    global.__PI_DATA__ = {};
+    delete require.cache[require.resolve(distMain)];
+    let PluginClass = null;
+    try { PluginClass = require(distMain); }
+    catch (e) { throw new Error('requiring the shipped main.js threw: ' + e.message); }
+
+    if (typeof PluginClass !== 'function') {
+      throw new Error('shipped main.js did not export the plugin class');
+    }
+
+    const p = new PluginClass(app, { id: 'pion' });
+    await p.onload();
+    const v = new PluginClass.PiChatView({}, p);
+    await v.onOpen();
+    for (const ev of EV_TEXT) v.handleEvent(ev);
+
+    if (p.conversation.messages.filter((m) => m.role === 'assistant').length !== 1) {
+      throw new Error('dist bundle did not process a real event stream');
+    }
+    if (!p.studyConfig || !p.studyConfig().lang) {
+      throw new Error('dist bundle is missing the study config surface');
+    }
+    if (!PluginClass.migrateConversations || !PluginClass.lineDiff) {
+      throw new Error('dist bundle is missing module exports used by tests');
+    }
   }
 
   console.log('\n' + (failures ? `FAILED: ${failures} check(s)\n` : 'ALL CHECKS PASSED\n'));

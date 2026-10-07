@@ -22,14 +22,17 @@ jobs:
 
       # No dependencies: the plugin has no build step and the test harness only
       # uses Node built-ins. This keeps CI fast and the supply chain empty.
+      - name: Verify the committed bundle is up to date with src/
+        run: npm run check:bundle
+
       - name: Syntax check
         run: npm run check
 
       - name: Verify manifest & versions consistency
         run: node dev/check-manifest.js
 
-      - name: Run offline test suite
-        run: npm test
+      - name: Build, then run the offline test suite against the built artifact
+        run: npm run build && npm test
 
       - name: Guard against leaking personal data / secrets
         run: node dev/check-privacy.js

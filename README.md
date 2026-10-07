@@ -121,10 +121,15 @@ Your normal pi, rendered in Obsidian:
 ```bash
 git clone https://github.com/Solren-zhen/obsidian-pion.git
 cd obsidian-pion
-npm run verify
+npm run verify      # builds main.js, then runs the checks
 ```
 
-There is no build step: `main.js` is loaded directly, so what you read is what runs.
+`main.js` is a **generated bundle** — `npm run build` inlines `src/study-profile.js` into it.
+This is required, not optional: Obsidian only downloads `main.js`, `manifest.json` and
+`styles.css` from a release, so a plugin that `require()`s a sibling file at load time
+would crash for everyone installing from the community directory. There is still **no
+bundler and no dependencies**; the build is a ~120-line script whose only job is that
+inlining. Edit `src/*.js`, never the generated `main.js`.
 
 ## Setup
 
@@ -149,25 +154,30 @@ No telemetry. No network requests beyond what you type into the prompt.
 ## Architecture
 
 ```
-main.js              plugin + chat view + settings + backend bridge + mode isolation
-study-profile.js     preset/config → persona + skills rendering, isolated profile setup
+main.js              GENERATED bundle — the only JS file Obsidian installs
+src/
+  main.js            plugin + chat view + settings + backend bridge + mode isolation
+  study-profile.js   preset/config → persona + skills rendering, isolated profile setup
 styles.css
 dev/                 offline verification tooling (never loaded by Obsidian)
+  build.js           inlines src/study-profile.js into main.js (no bundler)
   minidom.js         minimal DOM + Obsidian API stub
-  test.js            57 assertions over replayed real pi event streams
+  test.js            62 assertions over replayed real pi event streams
   e2e.js             real pi subprocess
   e2e-study.js       study mode: persona loads, daily pi untouched
   check-manifest.js  manifest/versions consistency
   check-privacy.js   blocks personal data and secrets from being published
 ```
 
-Plain CommonJS, **zero dependencies, no bundler**. `main.js` is ~1.7k lines you can read
-top to bottom.
+Plain CommonJS, **zero dependencies, no bundler**. Sources are ~1.7k readable lines; the
+generated bundle is verified in CI to load standalone (test 15 simulates a fresh install
+with only the three shipped files present).
 
 ## Development
 
 ```bash
-npm run verify        # syntax + 57 offline assertions
+npm run build         # regenerate main.js from src/
+npm run verify        # build + syntax + 62 offline assertions
 npm run e2e           # real pi subprocess (consumes tokens)
 npm run e2e:study     # study mode end-to-end (consumes tokens)
 ```
@@ -175,8 +185,9 @@ npm run e2e:study     # study mode end-to-end (consumes tokens)
 The offline suite replays **captured real pi event streams** through the state machine with a
 hand-rolled DOM stub, so it needs neither Obsidian nor a network — and it runs in CI on Node
 18/20/22. It covers parallel tool calls, thinking-before-text, throttled-stream commit
-ordering, multi-view duplication, failure paths, persistence purity and migration
-idempotency. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`dev/README.md`](dev/README.md).
+ordering, multi-view duplication, failure paths, persistence purity, migration idempotency,
+study/coding isolation, preset genericity and **distribution packaging**. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`dev/README.md`](dev/README.md).
 
 ## Acknowledgements
 

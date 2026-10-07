@@ -11,9 +11,23 @@ cd obsidian-pion
 npm run verify        # syntax check + 57 offline assertions
 ```
 
-There is **no build step and no dependencies**. `main.js` is loaded directly by Obsidian,
-and the test harness only uses Node built-ins. Please keep it that way — a zero-dependency
-plugin is much easier to audit and install.
+There are **no dependencies and no bundler**. The test harness only uses Node built-ins.
+
+There *is* a build step, and it is load-bearing:
+
+```bash
+npm run build     # src/*.js  ->  main.js
+```
+
+Edit **`src/main.js`** and **`src/study-profile.js`**. Never edit the generated root
+`main.js` — `npm run build` overwrites it.
+
+The build exists because Obsidian only downloads `main.js`, `manifest.json` and
+`styles.css` from a release. A plugin that `require()`s a sibling file at load time works in
+a dev vault and **crashes for every user who installs it from the community directory**. The
+build inlines `src/study-profile.js` into `main.js` inside an IIFE (which also contains the
+`fs`/`path`/`os` collisions between the two files). `dev/test.js` section 15 verifies the
+shipped artifact loads in a directory containing only those three files.
 
 ## Ways to contribute
 
@@ -25,8 +39,9 @@ plugin is much easier to audit and install.
 ## Testing
 
 ```bash
-npm run check         # node --check on both sources
-npm test              # 57 offline assertions (no network, no model calls)
+npm run build         # regenerate main.js (run this after any src/ edit)
+npm run check         # node --check on both sources and the bundle
+npm test              # 62 offline assertions (no network, no model calls)
 npm run e2e           # real pi subprocess (CONSUMES TOKENS)
 npm run e2e:study     # real pi in study mode (CONSUMES TOKENS)
 ```
@@ -54,6 +69,9 @@ These are load-bearing. `dev/test.js` enforces several of them.
    produce the same result the second time.
 6. **Study mode must not touch the daily pi.** New code in study mode may only write inside
    the isolated profile directory.
+7. **The shipped bundle must be self-contained.** If you add a module, add it to
+   `dev/build.js`. Anything `require()`d at load time other than Obsidian's own API will
+   break the released plugin.
 
 ## Adding a study preset
 

@@ -1,16 +1,25 @@
 {
   "name": "obsidian-pion",
   "version": "0.4.0",
-  "description": "Obsidian plugin embedding the Pi coding agent, with an isolated study-coach mode. No build step: main.js is loaded directly.",
+  "description": "Obsidian plugin mounting the Pi coding agent, with a fully isolated study-coach mode.",
   "main": "main.js",
   "scripts": {
-    "check": "node --check main.js && node --check study-profile.js",
+    "build": "node dev/build.js",
+    "check": "node --check src/main.js && node --check src/study-profile.js && node --check main.js",
     "test": "node dev/test.js",
     "e2e": "node dev/e2e.js",
     "e2e:study": "node dev/e2e-study.js",
-    "verify": "npm run check && npm test"
+    "verify": "npm run build && npm run check && npm run check:bundle && npm test",
+    "check:bundle": "node dev/build.js --check"
   },
-  "keywords": ["obsidian", "obsidian-plugin", "pi", "coding-agent", "study", "spaced-repetition"],
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "pi",
+    "coding-agent",
+    "study",
+    "spaced-repetition"
+  ],
   "license": "MIT",
   "private": true
 }

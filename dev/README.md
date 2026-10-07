@@ -56,6 +56,20 @@ npm run e2e:study   # 学习模式端到端
 dev/test.js 第 13 节验证：日常 agent 目录未被修改、凭据是 symlink、学习人格与日常隔离、
 两种模式的 env 与 argv 互不泄漏。
 
+## 为什么有构建步骤（重要）
+
+Obsidian **只从 release 下载 `main.js` / `manifest.json` / `styles.css` 三个文件**。
+如果插件在加载时 `require('./study-profile.js')`，那么在开发 vault 里能跑，
+但**从社区目录安装的每个用户都会白屏崩溃**。
+
+所以根目录的 `main.js` 是**生成物**：`dev/build.js` 把 `src/study-profile.js` 内联成
+一个 IIFE（顺便解决两个文件都声明 `fs`/`path`/`os` 的重复声明冲突）。
+依然没有 bundler、没有依赖，构建脚本只有 ~120 行。
+
+- 改代码 → 改 `src/`，不要改根目录 `main.js`
+- 新增模块 → 必须同时改 `dev/build.js`
+- `dev/test.js` 第 15 节会在只含那三个文件的临时目录里加载产物，专门拦这个坑
+
 ## 关键约定（改代码前必读）
 
 - **工具附着在 assistant 消息上**：`{ role:'assistant', text, thinking, tools:[...] }`。
