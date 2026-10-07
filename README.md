@@ -149,7 +149,28 @@ inlining. Edit `src/*.js`, never the generated `main.js`.
 | Coding session history | `~/.pi/agent/sessions/` | your daily pi; Pion never writes here in study mode |
 | Model credentials | `~/.pi/agent/*.json` | **symlinked, never copied or read** |
 
-No telemetry. No network requests beyond what you type into the prompt.
+### Disclosures
+
+Pion is a front-end for an external program, so a few things are worth stating plainly.
+
+**Files outside your vault.** The plugin symlinks `models.json`, `auth.json` and
+`models-store.json` from `~/.pi/agent` into the isolated study profile so you do not have to
+configure your API keys twice. A symlink stores only a path — the plugin never copies or
+reads credential contents. In **coding** mode your existing pi session history stays in
+`~/.pi/agent/sessions`, untouched by study mode.
+
+**It runs another program.** Pion does not call any model API itself. It spawns your local
+`pi` executable as a subprocess and streams its JSON events into the panel. Everything about
+models, keys, tools and prompts belongs to pi and to your own pi configuration.
+
+**Network use.** The plugin makes no network requests of its own. Requests to your model
+provider happen inside `pi`, under its configuration. The plugin sends no telemetry and has
+no analytics, ads, or accounts.
+
+**Write access.** Study and coding modes can read and write notes in your vault — that is the
+point, since results are written back as mistake notes and flashcards. Destructive commands
+are discouraged in the persona, but pi's `bash` tool is powerful: keep **require approval**
+on if you want a send-time confirmation, and grant tools deliberately.
 
 ## Architecture
 
