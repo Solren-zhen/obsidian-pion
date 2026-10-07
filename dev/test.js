@@ -815,6 +815,74 @@ function evThinking() {
     });
   }
 
+
+  console.log('\n== 17. disclosure claims match the code (machine-checked) ==');
+  {
+    const stripComments = (t) => t
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+
+    const srcMain = fs.readFileSync(path.join(PLUGIN_DIR, 'src', 'main.js'), 'utf8');
+    const srcProfile = fs.readFileSync(path.join(PLUGIN_DIR, 'src', 'study-profile.js'), 'utf8');
+    const src = stripComments(srcMain + '\n' + srcProfile);
+
+    // Every fs method the README lists as used.
+    const fsMethods = {};
+    for (const m of src.matchAll(/\bfs\.(\w+)\s*\(/g)) {
+      fsMethods[m[1]] = (fsMethods[m[1]] || 0) + 1;
+    }
+
+    check('no fs method outside the disclosed set is used', () => {
+      const allowed = new Set([
+        'existsSync', 'writeFileSync', 'unlinkSync', 'lstatSync',
+        'mkdirSync', 'readFileSync', 'readlinkSync', 'symlinkSync',
+      ]);
+      const extra = Object.keys(fsMethods).filter((m) => !allowed.has(m));
+      assert.deepStrictEqual(extra, [],
+        'undisclosed fs methods in use: ' + extra.join(', ') + ' — update the README disclosures');
+    });
+
+    check('no readdir / recursive delete / remove anywhere', () => {
+      for (const bad of ['readdirSync', 'readdir', 'rmSync', 'rmdirSync', 'fs.rm', 'fs.promises.rm']) {
+        assert.ok(!src.includes(bad), 'found ' + bad + ' — the README states it is not used');
+      }
+    });
+
+    check('exactly one read of file contents (the spaced-repetition config)', () => {
+      const reads = src.match(/\bfs\.readFileSync\s*\(/g) || [];
+      assert.strictEqual(reads.length, 1,
+        'README claims a single readFileSync call site, found ' + reads.length);
+    });
+
+    check('no shell: spawn only, with an argv array', () => {
+      assert.ok(!/\bexec(Sync)?\s*\(/.test(src), 'no exec()/execSync()');
+      assert.ok(!/spawnSync\s*\(/.test(src), 'no spawnSync()');
+      assert.ok(!/shell\s*:\s*true/.test(src), 'no shell: true (argv array only)');
+      assert.ok(/spawn\s*\(\s*\w+\.bin\s*,\s*\w+\.args\s*,/.test(src),
+        'expected spawn(bin, args, …) with an argv array');
+    });
+
+    check('README documents all three review findings it must disclose', () => {
+      const readme = fs.readFileSync(path.join(PLUGIN_DIR, 'README.md'), 'utf8');
+      for (const [what, re] of [
+        ['filesystem access outside the vault', /Filesystem access outside the vault/],
+        ['shell execution', /Shell execution/],
+        ['clipboard access', /Clipboard access/],
+        ['network use', /Network use/],
+        ['release provenance', /Release provenance/],
+      ]) {
+        assert.ok(re.test(readme), 'README disclosures must cover ' + what);
+      }
+    });
+
+    check('README credential claim matches the code (symlink, not copy)', () => {
+      const readme = fs.readFileSync(path.join(PLUGIN_DIR, 'README.md'), 'utf8');
+      assert.ok(/never read or copied/i.test(readme), 'README must state credentials are not copied');
+      assert.ok(/symlinkSync/.test(src), 'code should create symlinks');
+      assert.ok(!/copyFileSync/.test(src), 'code must not copy credential files');
+    });
+  }
+
   console.log('\n' + (failures ? `FAILED: ${failures} check(s)\n` : 'ALL CHECKS PASSED\n'));
   process.exit(failures ? 1 : 0);
 })().catch((e) => { console.error('harness crashed:', e); process.exit(2); });

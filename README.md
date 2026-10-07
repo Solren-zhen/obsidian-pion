@@ -154,35 +154,84 @@ inlining. Edit `src/*.js`, never the generated `main.js`.
 
 ### Disclosures
 
-Pion is a front-end for an external program, so a few things are worth stating plainly.
+Pion is a front-end for an external program, so the directory review flags three behaviours.
+They are inherent to the design rather than accidents, so rather than ask you to trust them,
+here is exactly what each one does and how to check it. (The review rates these as **warnings**
+and a **recommendation**, which per the directory docs do not block publication.)
 
-**Files outside your vault.** The plugin symlinks `models.json`, `auth.json` and
-`models-store.json` from `~/.pi/agent` into the isolated study profile so you do not have to
-configure your API keys twice. A symlink stores only a path — the plugin never copies or
-reads credential contents. In **coding** mode your existing pi session history stays in
-`~/.pi/agent/sessions`, untouched by study mode.
+#### Filesystem access outside the vault — *warning*
 
-**It runs another program.** Pion does not call any model API itself. It spawns your local
-`pi` executable as a subprocess and streams its JSON events into the panel. Everything about
-models, keys, tools and prompts belongs to pi and to your own pi configuration.
+The Node `fs` module can touch any file the process can reach. What this plugin actually does
+with it is deliberately narrow — **20 call sites** in the whole codebase, and only these methods:
 
-**Network use.** The plugin makes no network requests of its own. Requests to your model
-provider happen inside `pi`, under its configuration. The plugin sends no telemetry and has
-no analytics, ads, or accounts.
+```
+existsSync (9)  writeFileSync (3)  unlinkSync (3)
+lstatSync (1)   mkdirSync (1)      readFileSync (1)
+readlinkSync (1)  symlinkSync (1)
+```
 
-**Write access.** Study and coding modes can read and write notes in your vault — that is the
-point, since results are written back as mistake notes and flashcards. Destructive commands
-are discouraged in the persona, but pi's `bash` tool is powerful: keep **require approval**
-on if you want a send-time confirmation, and grant tools deliberately.
+There is no `readdirSync`, no `rm`, no `rmdir`, and no recursion over your vault.
 
-**Clipboard.** The only clipboard access is the copy button on a code block. It is triggered
-by your click and **writes only** — the clipboard is never read.
+| Where | What | Why |
+|---|---|---|
+| `~/.pi/agent/` | `existsSync`, `lstatSync`, `readlinkSync` | check your credentials exist before linking; detect stale links |
+| `<vault>/.obsidian/pi-study/` | `mkdirSync`, `symlinkSync`, `writeFileSync`, `existsSync`, `unlinkSync` | create and repair the isolated study profile |
+| `<vault>/.obsidian/plugins/obsidian-spaced-repetition/data.json` | `readFileSync` (1 site) | read-only: detect your flashcard separators |
 
-**Release provenance.** Release assets carry GitHub build-provenance attestations, so you can
-cryptographically verify that `main.js` was built from the tagged source in CI:
+- **Credential contents are never read or copied.** Only a symlink is created, and a symlink
+  stores a path, not data. This is what lets you avoid configuring API keys twice.
+- **The single `readFileSync` is the only read of file *contents* anywhere**, and it targets
+  the spaced-repetition plugin's config so card syntax matches your setup. Everything else is
+  existence checks and writes.
+- **Writes are confined to the isolated study profile** (`settings.json`, `AGENTS.md`,
+  `skills/*/SKILL.md`), plus the plugin's own `data.json` through Obsidian's API.
+- **All three deletions only ever target files this plugin generated** — `AGENTS.md` and its own
+  `skills/*/SKILL.md` — and only when you press *Regenerate persona*. Your own files and
+  `settings.json` are never removed.
+- No path is derived from file contents, and nothing is executed based on what is read.
+
+#### Shell execution — *warning*
+
+Pion runs your local agent as a subprocess. Specifics:
+
+- Only `spawn()` with an **argv array**. There is no `exec()`, no `spawnSync`, and no
+  `shell: true`, so nothing is passed through a shell — no word splitting, no globbing, no
+  quoting bugs, no shell injection surface.
+- The executable comes from **your settings** (default `pi`), and the argv is built from your
+  prompt and your settings. Nothing is executed that you did not type.
+- The subprocess runs with your user's permissions, and the agent's own tools (`bash`, `write`,
+  `edit`) can then act on whatever you granted via the tools setting. **That is the point of the
+  plugin** — it is an agent front-end — and it is also why *require approval* exists as a
+  send-time confirmation gate.
+
+#### Clipboard access — *recommendation*
+
+- One call site, reached only by clicking the copy button on a code block.
+- **Write-only**: it copies text you are already looking at. The clipboard is never read, so
+  nothing you copied from outside Obsidian can be exposed.
+
+#### Network use
+
+- The plugin makes **no network requests of its own** — no telemetry, analytics, ads, accounts,
+  or update pings.
+- Requests to your model provider happen inside `pi`, under your pi configuration.
+
+#### Release provenance
+
+Release assets carry GitHub build-provenance attestations, so you can cryptographically verify
+that `main.js` was built from the tagged source in CI rather than on someone's laptop:
 
 ```bash
 gh attestation verify main.js --repo Solren-zhen/obsidian-pion
+```
+
+#### Verify the above yourself
+
+Every claim here is asserted in the offline test suite, which needs no Obsidian and no network:
+
+```bash
+npm test    # includes checks for write-only clipboard, no eval, no console logging,
+            # no innerHTML, no !important, and the presence of these disclosures
 ```
 
 ## Architecture
