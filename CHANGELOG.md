@@ -4,6 +4,28 @@ All notable changes to Pion are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.5.2]
+
+Clears the last actionable item from the directory review. No shipped code changed.
+
+### Added
+
+- **`package-lock.json`**, so the directory's *build verification* check can run. It reported
+  "no JavaScript lockfile was found" and, without one, dependency resolution cannot be
+  reproduced. The plugin has zero dependencies, so the lockfile only records the project's own
+  metadata — but the check's reasoning is sound, and the file makes the zero-dependency claim
+  machine-verifiable.
+- Reproducibility is now asserted rather than assumed: building from a clean directory that
+  contains only `package.json`, `package-lock.json`, `src/` and `dev/build.js` produces a
+  `main.js` that is **byte-for-byte identical** to the committed one.
+
+### Changed
+
+- Both workflows install with `npm ci` instead of skipping installation. `npm ci` fails when
+  `package.json` and `package-lock.json` disagree, which keeps the lockfile honest.
+
+[0.5.2]: https://github.com/Solren-zhen/obsidian-pion/releases/tag/0.5.2
+
 ## [0.5.1]
 
 Addresses the first directory review. No functional regressions and no API changes.
