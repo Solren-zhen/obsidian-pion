@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # No dependencies: the plugin has no build step and the test harness only
+      # uses Node built-ins. This keeps CI fast and the supply chain empty.
+      - name: Syntax check
+        run: npm run check
+
+      - name: Verify manifest & versions consistency
+        run: node dev/check-manifest.js
+
+      - name: Run offline test suite
+        run: npm test
+
+      - name: Guard against leaking personal data / secrets
+        run: node dev/check-privacy.js
