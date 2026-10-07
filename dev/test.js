@@ -742,6 +742,79 @@ function evThinking() {
     }
   }
 
+
+  console.log('\n== 16. submission-policy hygiene ==');
+  {
+    const cssPath = path.join(PLUGIN_DIR, 'styles.css');
+    const css = fs.readFileSync(cssPath, 'utf8');
+    const main = fs.readFileSync(path.join(PLUGIN_DIR, 'main.js'), 'utf8');
+
+    check('styles.css avoids !important in actual declarations', () => {
+      // Strip comments first: prose that *mentions* the flag is not a violation, and a
+      // substring check would otherwise be defeated by (or trip over) documentation.
+      const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+      const hits = withoutComments.split('\n')
+        .map((line, i) => ({ line, n: i + 1 }))
+        .filter((x) => x.line.includes('!important'));
+      assert.strictEqual(hits.length, 0,
+        'found !important in a declaration at: ' + hits.map((h) => 'styles.css:' + h.n).join(', '));
+    });
+
+    check('the hidden helper is still strong enough to beat component display rules', () => {
+      // Doubled class => specificity (0,3,0), which outranks .pi-chip / .pi-icon-btn.
+      assert.ok(/\.pi-hidden\.pi-hidden\s*\{[^}]*display:\s*none/.test(css),
+        'expected a doubled-class .pi-hidden rule');
+    });
+
+    check('no innerHTML / insertAdjacentHTML (review rejects it)', () => {
+      assert.ok(!/\binnerHTML\b|\bouterHTML\b|\binsertAdjacentHTML\b/.test(main));
+    });
+
+    check('no console logging left in the shipped bundle', () => {
+      assert.ok(!/console\.(log|debug|info|warn)\s*\(/.test(main),
+        'found console logging in main.js');
+    });
+
+    check('no obfuscation markers (eval / Function constructor)', () => {
+      assert.ok(!/\beval\s*\(/.test(main));
+      assert.ok(!/new Function\s*\(/.test(main));
+    });
+
+    check('clipboard use is write-only', () => {
+      // Comments explain the behaviour; only executable code matters here.
+      const code = main
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+      assert.ok(!/clipboard[^.]*\.read|readText/.test(code), 'must never read the clipboard');
+      assert.ok(/\.writeText\s*\(/.test(code), 'should write to the clipboard for copy buttons');
+      assert.ok(/\.clipboard\b/.test(code), 'should go through the async clipboard API');
+    });
+
+    check('out-of-vault and shell access are disclosed in the README', () => {
+      const readme = fs.readFileSync(path.join(PLUGIN_DIR, 'README.md'), 'utf8');
+      assert.ok(/### Disclosures/.test(readme), 'README must have a Disclosures section');
+      for (const [what, re] of [
+        ['files outside the vault', /outside your vault|symlink/i],
+        ['running an external program', /subprocess|spawn/i],
+        ['network behaviour', /network/i],
+      ]) {
+        assert.ok(re.test(readme), 'README disclosures should mention ' + what);
+      }
+    });
+
+    check('release workflow attests the shipped assets', () => {
+      const wf = path.join(PLUGIN_DIR, '.github', 'workflows', 'release.yml');
+      assert.ok(fs.existsSync(wf), 'release workflow exists');
+      const y = fs.readFileSync(wf, 'utf8');
+      assert.ok(/attest-build-provenance/.test(y), 'must attest build provenance');
+      assert.ok(/attestations:\s*write/.test(y), 'needs attestations: write permission');
+      assert.ok(/id-token:\s*write/.test(y), 'needs id-token: write permission');
+      for (const f of ['main.js', 'manifest.json', 'styles.css']) {
+        assert.ok(y.includes(f), 'release must ship ' + f);
+      }
+    });
+  }
+
   console.log('\n' + (failures ? `FAILED: ${failures} check(s)\n` : 'ALL CHECKS PASSED\n'));
   process.exit(failures ? 1 : 0);
 })().catch((e) => { console.error('harness crashed:', e); process.exit(2); });

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pion",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Obsidian plugin mounting the Pi coding agent, with a fully isolated study-coach mode.",
   "main": "main.js",
   "scripts": {

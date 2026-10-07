@@ -77,8 +77,14 @@ body.theme-light .pi-agent-root {
 
 .pi-agent-root * { box-sizing: border-box; }
 
-/* generic visibility helper (also used for the stop button / usage chip) */
-.pi-agent-root .pi-hidden { display: none !important; }
+/* Visibility helper.
+   Deliberately avoids the CSS `important` flag (the directory flags it as a warning).
+   The class is intentionally doubled: `.pi-hidden.pi-hidden` has specificity (0,3,0),
+   which outranks the component rules that set `display` (.pi-chip, .pi-icon-btn,
+   .pi-sidebar) *and* theme or Obsidian base rules targeting bare `button`/`span`
+   elements. Doubling is a plain selector-specificity bump, so themes can still override
+   it deliberately by being more specific, instead of being forced to escalate. */
+.pi-agent-root .pi-hidden.pi-hidden { display: none; }
 
 /* ---------- toolbar ---------- */
 .pi-toolbar {

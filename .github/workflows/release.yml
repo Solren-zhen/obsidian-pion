@@ -1,0 +1,95 @@
+name: Release
+
+# Release on a version tag. Doing it here (rather than by hand) is what makes the
+# build-provenance attestations meaningful: the assets are built from the tagged
+# source in CI, and the attestation cryptographically records that fact.
+#
+# Usage on a maintainer machine:
+#   1. bump version in manifest.json AND package.json AND versions.json
+#   2. npm run verify
+#   3. git tag 0.6.0 && git push origin main --tags
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write       # create the release
+  id-token: write       # required for attestations (OIDC)
+  attestations: write   # required for attestations
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    # Only release from a tag that looks like a version.
+    if: github.repository == 'Solren-zhen/obsidian-pion'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+
+      # The tag, manifest.json and versions.json must agree. Obsidian resolves a
+      # plugin's files by asking for <tag>/<file>, so a mismatch ships the wrong code.
+      - name: Verify tag matches manifest version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          echo "tag=$TAG manifest=$MANIFEST"
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::tag '$TAG' does not match manifest.json version '$MANIFEST'"
+            exit 1
+          fi
+          node -p "require('./versions.json')['$TAG']" >/dev/null \
+            || { echo "::error::versions.json has no entry for $TAG"; exit 1; }
+
+      - name: Verify the committed bundle is up to date with src/
+        run: npm run check:bundle
+
+      - name: Build
+        run: npm run build
+
+      - name: Run offline test suite
+        run: npm test
+
+      - name: Run release checks
+        run: |
+          node dev/check-manifest.js
+          node dev/check-privacy.js
+
+      # Obsidian downloads exactly these three files. Fail loudly if any is missing
+      # rather than publishing a release that cannot be installed.
+      - name: Verify the three shippable files exist
+        run: |
+          set -euo pipefail
+          for f in main.js manifest.json styles.css; do
+            [ -f "$f" ] || { echo "::error::missing release asset: $f"; exit 1; }
+          done
+          ls -l main.js manifest.json styles.css
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            main.js
+            manifest.json
+            styles.css
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          draft: false
+          prerelease: false

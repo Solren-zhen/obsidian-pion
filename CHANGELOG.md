@@ -4,6 +4,35 @@ All notable changes to Pion are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.5.1]
+
+Addresses the first directory review. No functional regressions and no API changes.
+
+### Added
+
+- **Release workflow with build-provenance attestations.** Tagging a version now builds and
+  publishes the release in CI and attests `main.js` and `styles.css`, so their provenance can
+  be verified with `gh attestation verify main.js --repo Solren-zhen/obsidian-pion`. The
+  workflow also refuses to publish when the tag, `manifest.json` and `versions.json` disagree,
+  or when any of the three shippable files is missing.
+- Study/coding isolation tests now assert that `code` mode does not redirect to the study
+  profile, and that the credential symlinks never contain copied key material.
+- Submission-hygiene tests: no `!important` declarations, no `innerHTML`, no `console` logging,
+  no `eval`/`Function`, clipboard is write-only, README disclosures present, release assets
+  attested.
+
+### Changed
+
+- **Removed the CSS `important` flag** flagged by the directory's CSS lint. The visibility
+  helper now uses an intentionally doubled class (`.pi-hidden.pi-hidden`, specificity
+  `0,3,0`) instead, which still outranks every component rule that sets `display` while
+  leaving themes able to override it deliberately.
+- **Copy button** now reports failure instead of silently doing nothing, and no longer
+  swallows promise rejections.
+- README disclosures cover clipboard behaviour and release provenance verification.
+
+[0.5.1]: https://github.com/Solren-zhen/obsidian-pion/releases/tag/0.5.1
+
 ## [0.5.0] — first public release
 
 ### Added

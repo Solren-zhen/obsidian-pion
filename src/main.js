@@ -888,6 +888,15 @@ class PiChatView extends ItemView {
     });
   }
 
+  /**
+   * Copy a code block to the system clipboard.
+   *
+   * Disclosed behaviour: this is the plugin's only clipboard access, it is triggered
+   * exclusively by an explicit user click, and it only ever writes text the user is
+   * already looking at (the contents of the code block). Nothing is ever read from the
+   * clipboard. Failure is surfaced rather than swallowed, because a silently dead button
+   * is worse than an error.
+   */
   _addCopyButtons(el) {
     const pres = el.querySelectorAll ? el.querySelectorAll('pre') : [];
     pres.forEach((pre) => {
@@ -900,10 +909,20 @@ class PiChatView extends ItemView {
         e.stopPropagation();
         const code = pre.querySelector('code');
         const text = code ? code.textContent : pre.textContent;
-        navigator.clipboard.writeText(text).then(() => {
+        const reset = () => setTimeout(() => { btn.textContent = '复制'; }, 1200);
+        const clip = navigator.clipboard;
+        if (!clip || !clip.writeText) {
+          btn.textContent = '不可用';
+          reset();
+          return;
+        }
+        clip.writeText(text).then(() => {
           btn.textContent = '已复制';
-          setTimeout(() => { btn.textContent = '复制'; }, 1200);
-        }).catch(() => {});
+          reset();
+        }).catch(() => {
+          btn.textContent = '复制失败';
+          reset();
+        });
       });
       pre.style.position = 'relative';
       pre.appendChild(btn);

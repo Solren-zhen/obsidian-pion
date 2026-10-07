@@ -175,6 +175,16 @@ point, since results are written back as mistake notes and flashcards. Destructi
 are discouraged in the persona, but pi's `bash` tool is powerful: keep **require approval**
 on if you want a send-time confirmation, and grant tools deliberately.
 
+**Clipboard.** The only clipboard access is the copy button on a code block. It is triggered
+by your click and **writes only** — the clipboard is never read.
+
+**Release provenance.** Release assets carry GitHub build-provenance attestations, so you can
+cryptographically verify that `main.js` was built from the tagged source in CI:
+
+```bash
+gh attestation verify main.js --repo Solren-zhen/obsidian-pion
+```
+
 ## Architecture
 
 ```
