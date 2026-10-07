@@ -1,0 +1,10 @@
+{
+  "id": "pion",
+  "name": "Pion",
+  "version": "0.4.0",
+  "minAppVersion": "1.4.0",
+  "description": "Embeds the Pi coding agent in your vault with two fully isolated modes: a study coach for any subject and daily coding, sharing credentials but never context.",
+  "author": "Solren-zhen",
+  "authorUrl": "https://github.com/Solren-zhen",
+  "isDesktopOnly": true
+}

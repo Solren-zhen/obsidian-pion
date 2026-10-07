@@ -1,0 +1,7 @@
+# Plugin runtime state (contains the user's own settings and transcripts)
+data.json
+*.log
+.DS_Store
+
+# The isolated study profile lives inside the vault, never in this repo
+../pi-study

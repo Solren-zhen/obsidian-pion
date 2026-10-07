@@ -1,0 +1,52 @@
+{
+  "extraPath": "/home/user/.local/bin",
+  "backend": "pi",
+  "allowedTools": "read,write,edit,bash",
+  "__version": 3,
+  "__activeConversation": "conv-legacy-0001",
+  "__conversations": [
+    {
+      "id": "conv-legacy-0001",
+      "name": "示例会话",
+      "piSessionId": "c40fc0ac-6a96-4798-9a4b-e56ea2f97ea7",
+      "created": 1759500000000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "列出当前目录",
+          "ts": 1759500000000
+        },
+        {
+          "role": "assistant",
+          "text": "",
+          "thinking": "",
+          "ts": 1759500001000,
+          "_el": null,
+          "_bodyEl": null
+        },
+        {
+          "role": "tool",
+          "ts": 1759500002000,
+          "tool": {
+            "name": "bash",
+            "args": {
+              "command": "ls -la"
+            },
+            "result": "/home/user/project\n---\nfile-a.md\nfile-b.md\n",
+            "isError": false,
+            "status": "done",
+            "callId": "call-legacy-1"
+          },
+          "_card": null
+        },
+        {
+          "role": "assistant",
+          "text": "当前目录有两个文件。",
+          "thinking": "简单列举即可。",
+          "ts": 1759500003000,
+          "_argBuf": ""
+        }
+      ]
+    }
+  ]
+}

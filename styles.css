@@ -1,0 +1,434 @@
+/* ============================================================
+   Pi Agent — 样式，对齐 Pi Desktop 主题 token
+   （取自 pi-desktop customThemeOverrides：暖米色/暖灰 + 琥珀强调）
+   ============================================================ */
+
+.pi-agent-root {
+  /* ---- dark (默认, 对齐 pi-desktop theme=dark) ---- */
+  --pi-bg-app: #262624;
+  --pi-bg-sidebar: #1f1e1d;
+  --pi-bg-panel: #2e2d2b;
+  --pi-bg-popover: #2b2a28;
+  --pi-bg-input: #30302e;
+  --pi-bg-muted: #333230;
+  --pi-bg-hover: #3e362f;
+  --pi-bg-active: #503a2d;
+  --pi-bg-card: #30302e;
+
+  --pi-text: #f5f4ee;
+  --pi-text-2: #c9c7be;
+  --pi-text-3: #a3a29a;
+
+  --pi-border-subtle: #3d352e;
+  --pi-border: #4a4038;
+  --pi-border-strong: #55524e;
+
+  --pi-accent: #e0855c;
+  --pi-accent-strong: #ef9670;
+  --pi-accent-soft: #4a342a;
+  --pi-on-accent: #241610;
+  --pi-success: #00c853;
+  --pi-danger: #ff5f38;
+
+  /* 排版 */
+  --pi-font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", "Noto Serif CJK SC", "Noto Serif SC", Georgia, serif;
+  --pi-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
+  --pi-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --pi-radius: 12px;
+  --pi-radius-sm: 8px;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--pi-bg-app);
+  color: var(--pi-text);
+  font-family: var(--pi-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+body.theme-light .pi-agent-root {
+  --pi-bg-app: #f5f4ee;
+  --pi-bg-sidebar: #eae8dc;
+  --pi-bg-panel: #fbfaf7;
+  --pi-bg-popover: #ffffff;
+  --pi-bg-input: #fdfcf9;
+  --pi-bg-muted: #edebe2;
+  --pi-bg-hover: #f2e0d2;
+  --pi-bg-active: #f6dcc9;
+  --pi-bg-card: #fdfcf8;
+
+  --pi-text: #141413;
+  --pi-text-2: #4a4944;
+  --pi-text-3: #6b655c;
+
+  --pi-border-subtle: #ecdccb;
+  --pi-border: #e0cbb4;
+  --pi-border-strong: #c8c5b6;
+
+  --pi-accent: #e87f53;
+  --pi-accent-strong: #d56a3d;
+  --pi-accent-soft: #fbe4d4;
+  --pi-on-accent: #2a1a10;
+  --pi-success: #00a344;
+  --pi-danger: #e64a19;
+}
+
+.pi-agent-root * { box-sizing: border-box; }
+
+/* generic visibility helper (also used for the stop button / usage chip) */
+.pi-agent-root .pi-hidden { display: none !important; }
+
+/* ---------- toolbar ---------- */
+.pi-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pi-border-subtle);
+  background: var(--pi-bg-app);
+  flex: 0 0 auto;
+}
+.pi-toolbar-left { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; overflow: hidden; }
+.pi-toolbar-right { display: flex; gap: 4px; align-items: center; }
+
+/* ---------- mode switch (学习 / 编程) ---------- */
+.pi-mode-group {
+  display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px;
+  background: var(--pi-bg-muted); flex: 0 0 auto;
+}
+.pi-mode-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: none; background: transparent; cursor: pointer;
+  padding: 3px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; line-height: 1.4;
+  color: var(--pi-text-3);
+  transition: background .12s ease, color .12s ease;
+}
+.pi-mode-btn:hover { color: var(--pi-text-1); }
+.pi-mode-btn .pi-mode-icon { display: inline-flex; }
+.pi-mode-btn .pi-mode-icon svg { width: 13px; height: 13px; }
+.pi-mode-btn.is-active {
+  background: var(--pi-bg-app); color: var(--pi-text-1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.16);
+}
+
+/* Study mode gets a distinct accent so it is obvious which人格 is active. */
+.pi-agent-root.pi-mode-study .pi-mode-btn.is-active {
+  background: color-mix(in srgb, var(--pi-accent) 18%, var(--pi-bg-app));
+  color: var(--pi-accent);
+}
+.pi-agent-root.pi-mode-study .pi-input-wrap {
+  border-color: color-mix(in srgb, var(--pi-accent) 40%, var(--pi-border));
+}
+
+/* ---------- study profile info box ---------- */
+.pi-profile-info {
+  margin: 10px 0 4px; padding: 8px 12px;
+  border-radius: var(--pi-radius-sm, 6px);
+  background: var(--background-secondary);
+  font-family: var(--font-monospace); font-size: 11.5px; line-height: 1.7;
+  color: var(--text-muted); word-break: break-all;
+}
+.pi-profile-error { color: var(--text-error); }
+
+.pi-chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--pi-bg-muted);
+  color: var(--pi-text-2);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pi-chip-dim { color: var(--pi-text-3); background: transparent; border-color: var(--pi-border-subtle); }
+
+.pi-icon-btn {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 7px;
+  border-radius: var(--pi-radius-sm);
+  color: var(--pi-text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+.pi-icon-btn:hover { background: var(--pi-bg-hover); color: var(--pi-text); }
+.pi-icon-btn .svg-icon { width: 16px; height: 16px; }
+
+/* ---------- body ---------- */
+.pi-body { display: flex; flex: 1 1 auto; min-height: 0; }
+.pi-main { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+
+/* ---------- sidebar ---------- */
+.pi-sidebar {
+  width: 220px;
+  flex: 0 0 auto;
+  border-right: 1px solid var(--pi-border-subtle);
+  background: var(--pi-bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.pi-sidebar.pi-hidden { display: none; }
+.pi-sidebar-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px;
+  font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--pi-text-3);
+}
+.pi-session-list { overflow-y: auto; padding: 0 8px 8px; }
+.pi-session-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: var(--pi-radius-sm); cursor: pointer; gap: 6px;
+  color: var(--pi-text-2);
+  transition: background 120ms ease;
+}
+.pi-session-item:hover { background: var(--pi-bg-hover); }
+.pi-session-item.is-active {
+  background: var(--pi-bg-active);
+  color: var(--pi-text);
+  border-left: 2px solid var(--pi-accent);
+  padding-left: 8px;
+}
+.pi-session-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.pi-session-del { opacity: 0; padding: 3px; }
+.pi-session-item:hover .pi-session-del { opacity: 1; }
+
+/* ---------- messages ---------- */
+.pi-messages {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px 22px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pi-empty { color: var(--pi-text-3); text-align: center; margin: auto; max-width: 360px; }
+.pi-empty-title {
+  font-family: var(--pi-font-serif);
+  font-size: 1.6em; font-weight: 600; margin-bottom: 8px; color: var(--pi-text);
+  letter-spacing: .01em;
+}
+
+.pi-msg { display: flex; }
+.pi-msg-assistant { align-items: flex-start; gap: 10px; }
+.pi-msg-user { justify-content: flex-end; }
+
+/* assistant avatar dot */
+.pi-msg-assistant::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 22px; height: 22px; margin-top: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--pi-accent-strong), var(--pi-accent));
+}
+
+.pi-bubble { max-width: 100%; }
+.pi-bubble-user {
+  max-width: 88%;
+  background: var(--pi-accent-soft);
+  color: var(--pi-text);
+  border: 1px solid color-mix(in srgb, var(--pi-accent) 30%, transparent);
+  border-radius: var(--pi-radius) var(--pi-radius) 4px var(--pi-radius);
+  padding: 10px 14px;
+}
+.pi-user-text { white-space: pre-wrap; word-break: break-word; font-family: var(--pi-font-sans); }
+
+.pi-bubble-assistant { flex: 1 1 auto; min-width: 0; background: transparent; border: none; padding: 0; }
+.pi-md { font-family: var(--pi-font-serif); font-size: 15px; color: var(--pi-text); }
+.pi-md > :first-child { margin-top: 0; }
+.pi-md > :last-child { margin-bottom: 0; }
+.pi-md p { margin: .5em 0; }
+.pi-md a { color: var(--pi-accent); text-decoration: underline; text-underline-offset: 2px; }
+.pi-md code {
+  font-family: var(--pi-font-mono); font-size: .88em;
+  background: var(--pi-bg-muted); padding: 1px 5px; border-radius: 5px;
+}
+.pi-md pre {
+  background: var(--pi-bg-card); border: 1px solid var(--pi-border-subtle);
+  border-radius: var(--pi-radius-sm); padding: 12px 14px; overflow: auto;
+}
+.pi-md pre code { background: transparent; padding: 0; }
+.pi-copy-btn {
+  position: absolute; top: 6px; right: 6px;
+  font-size: 11px; padding: 2px 8px; border-radius: 6px;
+  background: var(--pi-bg-muted); color: var(--pi-text-2);
+  border: 1px solid var(--pi-border-subtle); cursor: pointer;
+  opacity: 0; transition: opacity 120ms ease;
+}
+.pi-md pre:hover .pi-copy-btn { opacity: 1; }
+.pi-copy-btn:hover { background: var(--pi-bg-hover); color: var(--pi-text); }
+.pi-md h1, .pi-md h2, .pi-md h3 { font-weight: 600; margin: .8em 0 .4em; }
+.pi-md ul, .pi-md ol { padding-left: 1.3em; }
+.pi-md blockquote {
+  margin: .5em 0; padding: .1em 0 .1em 12px;
+  border-left: 3px solid var(--pi-border); color: var(--pi-text-2);
+}
+
+/* ---------- tool card ---------- */
+.pi-msg-tool { justify-content: stretch; }
+.pi-tool-card {
+  width: 100%;
+  border: 1px solid var(--pi-border-subtle);
+  border-radius: var(--pi-radius);
+  background: var(--pi-bg-card);
+  font-size: 13px;
+  overflow: hidden;
+  transition: border-color 120ms ease;
+}
+.pi-tool-card:hover { border-color: var(--pi-border); }
+.pi-tool-card.pi-tool-error { border-color: var(--pi-danger); }
+.pi-tool-summary {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 13px; cursor: pointer; user-select: none; list-style: none;
+  color: var(--pi-text-2);
+}
+.pi-tool-summary::-webkit-details-marker { display: none; }
+.pi-tool-icon { display: inline-flex; color: var(--pi-accent); }
+.pi-tool-icon .svg-icon { width: 15px; height: 15px; }
+.pi-tool-name { font-weight: 600; color: var(--pi-text); }
+.pi-tool-arg {
+  color: var(--pi-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1 1 auto; min-width: 0; font-family: var(--pi-font-mono); font-size: .92em;
+}
+.pi-tool-state { margin-left: auto; font-weight: 700; font-size: 12px; color: var(--pi-success); }
+.pi-tool-card.pi-tool-error .pi-tool-state { color: var(--pi-danger); }
+.pi-tool-body { padding: 0 13px 12px; }
+
+.pi-diff {
+  max-height: 340px; overflow: auto; border-radius: var(--pi-radius-sm);
+  background: var(--pi-bg-app); border: 1px solid var(--pi-border-subtle);
+  padding: 8px 0; font-family: var(--pi-font-mono); font-size: 12.5px; line-height: 1.6;
+}
+.pi-diff-line { padding: 0 12px; white-space: pre; }
+.pi-diff-ctx { color: var(--pi-text-3); }
+.pi-diff-add { background: color-mix(in srgb, var(--pi-success) 14%, transparent); }
+.pi-diff-del { background: color-mix(in srgb, var(--pi-danger) 14%, transparent); }
+
+/* ---------- thinking ---------- */
+.pi-thinking {
+  margin-bottom: 8px;
+  border-left: 2px solid var(--pi-border);
+  border-radius: 0 var(--pi-radius-sm) var(--pi-radius-sm) 0;
+  background: color-mix(in srgb, var(--pi-bg-muted) 55%, transparent);
+}
+.pi-thinking-summary {
+  cursor: pointer; user-select: none; list-style: none;
+  padding: 4px 10px; font-size: 12px; letter-spacing: .03em;
+  color: var(--pi-text-3);
+}
+.pi-thinking-summary::-webkit-details-marker { display: none; }
+.pi-thinking-summary::before { content: "▸ "; }
+.pi-thinking[open] > .pi-thinking-summary::before { content: "▾ "; }
+.pi-thinking-body {
+  max-height: 260px; overflow: auto;
+  padding: 2px 12px 10px; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--pi-font-sans); font-size: 13px; line-height: 1.6;
+  color: var(--pi-text-2);
+}
+
+/* ---------- streaming caret ---------- */
+.pi-md.pi-streaming > :last-child::after {
+  content: "▍"; margin-left: 1px; color: var(--pi-accent);
+  animation: pi-caret 1s steps(2, start) infinite;
+}
+@keyframes pi-caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+/* ---------- tool group ---------- */
+.pi-tool-cards { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.pi-tool-group-pending > .pi-tool-card { opacity: .92; }
+.pi-usage-chip { font-family: var(--pi-font-mono); }
+.pi-history-note {
+  align-self: center; font-size: 12px; color: var(--pi-text-3);
+  padding: 2px 10px; border-radius: 999px; background: var(--pi-bg-muted);
+}
+.pi-md-user, .pi-md-user p { font-family: var(--pi-font-sans); }
+
+/* ---------- settings extras ---------- */
+.pi-settings-intro { color: var(--pi-text-2, #4a4944); font-size: 13px; margin: 0 0 12px; }
+.pi-settings-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.pi-settings-hint { color: var(--text-muted); font-size: 12px; font-family: var(--font-monospace); }
+
+.pi-tool-args, .pi-tool-result pre {
+  max-height: 280px; overflow: auto;
+  background: transparent; border: none; border-left: 2px solid var(--pi-border);
+  border-radius: 0; padding: 2px 0 2px 12px; margin: 8px 0 0;
+  font-family: var(--pi-font-mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word;
+  color: var(--pi-text-2);
+}
+.pi-tool-result-label {
+  font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--pi-text-3); margin-top: 8px;
+}
+.pi-tool-running { color: var(--pi-accent); padding: 3px 0; font-size: 12.5px; }
+
+/* ---------- input ---------- */
+.pi-input-wrap { flex: 0 0 auto; padding: 10px 16px 14px; background: var(--pi-bg-app); }
+.pi-input-wrap::before {
+  content: ""; display: block; height: 1px; margin: -10px -16px 12px;
+  background: var(--pi-border-subtle);
+}
+.pi-input {
+  width: 100%; resize: none; min-height: 46px; max-height: 40vh;
+  font-family: var(--pi-font-sans); font-size: 14px; line-height: 1.5;
+  color: var(--pi-text);
+  background: var(--pi-bg-input);
+  border: 1px solid var(--pi-border);
+  border-radius: var(--pi-radius);
+  padding: 11px 14px;
+  box-shadow: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pi-input::placeholder { color: var(--pi-text-3); }
+.pi-input:focus {
+  outline: none;
+  border-color: var(--pi-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pi-accent) 22%, transparent);
+}
+.pi-input-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
+.pi-status { color: var(--pi-text-3); font-size: 12px; }
+
+.pi-agent-root button.mod-cta {
+  background: var(--pi-accent);
+  color: var(--pi-on-accent);
+  border: none;
+  border-radius: var(--pi-radius-sm);
+  padding: 7px 18px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 120ms ease;
+}
+.pi-agent-root button.mod-cta:hover { background: var(--pi-accent-strong); }
+.pi-agent-root button.mod-cta:disabled { opacity: .5; cursor: default; }
+
+/* ---------- approval modal ---------- */
+.pi-approve-hint { color: var(--pi-text-2); font-size: 13px; }
+.pi-approve-box {
+  background: var(--pi-bg-muted); border: 1px solid var(--pi-border-subtle);
+  border-radius: var(--pi-radius); padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--pi-text-2);
+}
+.pi-approve-prompt {
+  max-height: 220px; overflow: auto; margin: 8px 0 0;
+  background: var(--pi-bg-app); border: 1px solid var(--pi-border-subtle); border-radius: var(--pi-radius-sm);
+  padding: 10px 12px; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--pi-font-mono); font-size: 12.5px; color: var(--pi-text);
+}
+.pi-approve-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* scrollbars */
+.pi-agent-root ::-webkit-scrollbar { width: 10px; height: 10px; }
+.pi-agent-root ::-webkit-scrollbar-thumb {
+  background: var(--pi-border); border-radius: 999px; border: 3px solid transparent; background-clip: content-box;
+}
+.pi-agent-root ::-webkit-scrollbar-thumb:hover { background: var(--pi-border-strong); background-clip: content-box; }
+.pi-agent-root ::-webkit-scrollbar-track { background: transparent; }
