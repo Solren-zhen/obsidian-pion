@@ -169,8 +169,8 @@ body.theme-light .pi-agent-root {
 .pi-icon-btn .svg-icon { width: 16px; height: 16px; }
 
 /* ---------- body ---------- */
-.pi-body { display: flex; flex: 1 1 auto; min-height: 0; }
-.pi-main { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.pi-body { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; }
+.pi-main { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; width: 100%; }
 
 /* ---------- sidebar ---------- */
 .pi-sidebar {
@@ -223,8 +223,8 @@ body.theme-light .pi-agent-root {
   letter-spacing: .01em;
 }
 
-.pi-msg { display: flex; }
-.pi-msg-assistant { align-items: flex-start; gap: 10px; }
+.pi-msg { display: flex; width: 100%; min-width: 0; }
+.pi-msg-assistant { align-items: flex-start; gap: 10px; min-width: 0; }
 .pi-msg-user { justify-content: flex-end; }
 
 /* assistant avatar dot */
@@ -247,8 +247,12 @@ body.theme-light .pi-agent-root {
 }
 .pi-user-text { white-space: pre-wrap; word-break: break-word; font-family: var(--pi-font-sans); }
 
-.pi-bubble-assistant { flex: 1 1 auto; min-width: 0; background: transparent; border: none; padding: 0; }
+.pi-bubble-assistant { flex: 1 1 auto; min-width: 0; max-width: 100%; background: transparent; border: none; padding: 0; }
 .pi-md { font-family: var(--pi-font-serif); font-size: 15px; color: var(--pi-text); }
+.pi-md {
+  min-width: 0; max-width: 100%;
+  overflow-wrap: anywhere; word-break: break-word;
+}
 .pi-md > :first-child { margin-top: 0; }
 .pi-md > :last-child { margin-bottom: 0; }
 .pi-md p { margin: .5em 0; }
@@ -270,6 +274,14 @@ body.theme-light .pi-agent-root {
   opacity: 0; transition: opacity 120ms ease;
 }
 .pi-md pre:hover .pi-copy-btn { opacity: 1; }
+
+/* Defensive: a wide code block / table / image must scroll or shrink inside a narrow
+   leaf instead of forcing the whole reply column down to its min-content width
+   (which, for CJK, is roughly one character per line). */
+.pi-md table { display: block; max-width: 100%; overflow-x: auto; }
+.pi-md img { max-width: 100%; height: auto; }
+.pi-md pre { max-width: 100%; }
+.pi-md > * { max-width: 100%; }
 .pi-copy-btn:hover { background: var(--pi-bg-hover); color: var(--pi-text); }
 .pi-md h1, .pi-md h2, .pi-md h3 { font-weight: 600; margin: .8em 0 .4em; }
 .pi-md ul, .pi-md ol { padding-left: 1.3em; }

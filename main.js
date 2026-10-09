@@ -1605,6 +1605,9 @@ class PiChatView extends ItemView {
       m._bodyEl = body;
     } else {
       const bubble = wrap.createDiv({ cls: 'pi-bubble pi-bubble-assistant' });
+      // Remember the bubble so the streaming path can (re)build the thinking card
+      // when the first delta is a thinking token and the card does not exist yet.
+      m._bubbleEl = bubble;
       this._renderAssistantBody(bubble, m);
     }
     m._el = wrap;
@@ -1920,7 +1923,10 @@ class PiChatView extends ItemView {
     if (!m || !this._liveEl) return;
     if (this._streamDirty.thinking) {
       // The first token may be thinking, so the card can still be missing here.
-      if (!m._thinkingEl && this.plugin.settings.showThinking && m.thinking) {
+      // `_bubbleEl` is set by `renderMessage`, but guard anyway: an undefined bubble
+      // here used to throw inside `_renderAssistantBody` and abort the whole flush,
+      // which silently froze the reply mid-stream.
+      if (!m._thinkingEl && this.plugin.settings.showThinking && m.thinking && m._bubbleEl) {
         this._renderAssistantBody(m._bubbleEl, m);
         if (m._thinkingCard) m._thinkingCard.setAttribute('open', m.thinking.length < 600 ? '' : 'x');
       } else if (m._thinkingEl) {
