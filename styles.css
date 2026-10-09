@@ -224,7 +224,13 @@ body.theme-light .pi-agent-root {
 }
 
 .pi-msg { display: flex; width: 100%; min-width: 0; }
-.pi-msg-assistant { align-items: flex-start; gap: 10px; min-width: 0; }
+/* The assistant row hosts the avatar, the bubble AND (once tools run) a sibling
+   `.pi-tool-cards` group. That group must own a full-width line of its own: its
+   children (`.pi-diff-line` uses `white-space: pre`, `.pi-tool-arg` uses
+   `white-space: nowrap`) have a huge min-content width, and as a plain flex item it
+   would win the row and squeeze the bubble down to min-content — one CJK character
+   per line. Wrapping puts the tool cards below the reply at full width instead. */
+.pi-msg-assistant { align-items: flex-start; gap: 10px; min-width: 0; flex-wrap: wrap; }
 .pi-msg-user { justify-content: flex-end; }
 
 /* assistant avatar dot */
@@ -293,6 +299,7 @@ body.theme-light .pi-agent-root {
 /* ---------- tool card ---------- */
 .pi-msg-tool { justify-content: stretch; }
 .pi-tool-card {
+  width: 100%; min-width: 0;
   width: 100%;
   border: 1px solid var(--pi-border-subtle);
   border-radius: var(--pi-radius);
@@ -360,7 +367,9 @@ body.theme-light .pi-agent-root {
 @keyframes pi-caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
 
 /* ---------- tool group ---------- */
-.pi-tool-cards { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+/* `flex-basis: 100%` forces the tool group onto its own line even when the reply row
+   is not wrapped, and `min-width: 0` stops its wide children from inflating it. */
+.pi-tool-cards { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; flex: 1 1 100%; min-width: 0; }
 .pi-tool-group-pending > .pi-tool-card { opacity: .92; }
 .pi-usage-chip { font-family: var(--pi-font-mono); }
 .pi-history-note {
