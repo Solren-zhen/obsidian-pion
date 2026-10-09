@@ -4,6 +4,28 @@ All notable changes to Pion are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.5.4]
+
+Fixes the actual cause of the "one character per line" reply collapse. 0.5.3 addressed the
+wrong element and did not resolve the visible defect.
+
+### Fixed
+
+- **Assistant replies collapsed to one character per line once a tool ran.** The assistant
+  message row (`.pi-msg-assistant`) is a flex row that holds the avatar, the reply bubble
+  and — inserted by `_ensureToolCard` into the same row — the `.pi-tool-cards` group. That
+  group inherits `min-width: auto`, and its children are wide by construction
+  (`.pi-diff-line` is `white-space: pre`, `.pi-tool-arg` is `white-space: nowrap`), so it
+  claimed 556px inside a 326px row and squeezed the bubble to 0px. With no width left, the
+  CJK reply wrapped after every single character. The tool group now takes a full line of its
+  own (`flex: 1 1 100%`, `min-width: 0` on it and on `.pi-tool-card`), so the reply keeps the
+  full row width and tool cards sit below it.
+- Verified by measuring the real DOM with the shipped `styles.css` plus Obsidian's core
+  `app.css` and the active theme: `.pi-md` width inside a 380px pane went from **0px**
+  (collapsed) to **336px** (full row width) with the fix applied.
+
+[0.5.4]: https://github.com/Solren-zhen/obsidian-pion/releases/tag/0.5.4
+
 ## [0.5.3]
 
 Fixes a rendering defect where assistant replies in a narrow pane could collapse to
