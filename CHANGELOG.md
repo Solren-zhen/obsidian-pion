@@ -4,6 +4,28 @@ All notable changes to Pion are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.5.3]
+
+Fixes a rendering defect where assistant replies in a narrow pane could collapse to
+roughly one character per line, and hardens the streaming path against a crash.
+
+### Fixed
+
+- **Reply column could collapse to one character per line.** The assistant bubble and its
+  markdown body had no explicit `min-width: 0` / `max-width: 100%` in the flex chain from
+  `.pi-body` down to `.pi-md`. In a narrow leaf, a wide child (a long code block, a table)
+  raised the container's min-content width, and for CJK text that floor is about one
+  character — so every line wrapped after a single glyph. The whole chain now declares its
+  sizing explicitly, and wide content (code blocks, tables, images) scrolls or shrinks
+  inside the bubble instead of forcing the column down.
+- **Streaming could abort on the first thinking token.** `_flushStream` passed
+  `m._bubbleEl` to `_renderAssistantBody`, but `m._bubbleEl` was never assigned. When the
+  first delta was a thinking token, this threw a `TypeError` that aborted the rest of the
+  flush, freezing the visible reply mid-stream. `renderMessage` now records the bubble, and
+  the flush guards against a missing bubble instead of throwing.
+
+[0.5.3]: https://github.com/Solren-zhen/obsidian-pion/releases/tag/0.5.3
+
 ## [0.5.2]
 
 Clears the last actionable item from the directory review. No shipped code changed.
