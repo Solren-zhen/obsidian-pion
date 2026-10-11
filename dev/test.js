@@ -9,6 +9,7 @@ const Module = require('module');
 const path = require('path');
 const assert = require('assert');
 const fs = require('fs');
+const os = require('os');
 
 const { obsidian, El } = require(__dirname + '/minidom.js');
 
@@ -36,8 +37,22 @@ const app = {
 };
 
 let failures = 0;
+const pendingAsyncChecks = [];
 function check(name, fn) {
-  try { fn(); console.log('  ✓ ' + name); }
+  try {
+    const r = fn();
+    if (r && typeof r.then === 'function') {
+      // Async check (rpc transport tests): settle before the harness exits.
+      pendingAsyncChecks.push(
+        r.then(
+          () => { console.log('  ✓ ' + name); },
+          (e) => { failures++; console.log('  ✗ ' + name + '\n      ' + e.message); },
+        ),
+      );
+      return;
+    }
+    console.log('  ✓ ' + name);
+  }
   catch (e) { failures++; console.log('  ✗ ' + name + '\n      ' + e.message); }
 }
 
@@ -395,7 +410,23 @@ function evThinking() {
     view.renderTranscript();
     check('new conversation gets a fresh pi session id', () => {
       assert.notStrictEqual(plugin.conversation.piSessionId, first);
-      assert.strictEqual(view.listEl.textContent.includes('Pi Agent'), true);
+      assert.ok((view.listEl.textContent || '').includes('Pion'),
+        'empty state welcome should render the plugin name');
+    });
+    check('IME composition Enter does not send, plain Enter does', () => {
+      let sent = 0;
+      const prevSubmit = view.submit.bind(view);
+      view.submit = () => { sent++; };
+      try {
+        const fire = (ev) => { for (const fn of view.inputEl._listeners.keydown) fn(ev); };
+        fire({ key: 'Enter', shiftKey: false, isComposing: true, keyCode: 229, preventDefault() {} });
+        fire({ key: 'Enter', shiftKey: false, isComposing: false, keyCode: 229, preventDefault() {} });
+        assert.strictEqual(sent, 0, 'composing Enter (isComposing/229) must not send');
+        fire({ key: 'Enter', shiftKey: false, isComposing: false, keyCode: 0, preventDefault() {} });
+        assert.strictEqual(sent, 1, 'plain Enter sends');
+      } finally {
+        view.submit = prevSubmit;
+      }
     });
     check('@-mention quoting for paths with spaces', () => {
       plugin.settings.cwd = 'vault';
@@ -882,6 +913,120 @@ function evThinking() {
       assert.ok(!/copyFileSync/.test(src), 'code must not copy credential files');
     });
   }
+
+  // == 18. rpc transport (src/pi-rpc.js) ================================================
+  // The framing rules come from pi docs/rpc.md: LF-delimited JSONL, CR tolerated,
+  // readline forbidden (U+2028/U+2029 are legal inside JSON strings).
+
+  {
+    const { createLineSplitter, RpcSession } = require(path.join(__dirname, '..', 'src', 'pi-rpc.js'));
+
+    check('line splitter: LF, CRLF, empty lines, final partial line', () => {
+      const got = [];
+      const feed = createLineSplitter((l) => got.push(l));
+      feed('{"a":1}\n{"b":2}\r\n\n{"c":');
+      assert.deepStrictEqual(got, ['{"a":1}', '{"b":2}']);
+      feed('3}\n');
+      assert.deepStrictEqual(got, ['{"a":1}', '{"b":2}', '{"c":3}']);
+    });
+
+    check('line splitter: U+2028/U+2029 inside JSON strings stay intact', () => {
+      const got = [];
+      const feed = createLineSplitter((l) => got.push(l));
+      const payload = JSON.stringify({ text: 'line\u2028sep\u2029end' }) + '\n';
+      // Feed one byte at a time to exercise multi-chunk buffering through StringDecoder.
+      for (const ch of Buffer.from(payload, 'utf8')) feed(Buffer.from([ch]));
+      assert.strictEqual(got.length, 1, 'U+2028/2029 must not split the record');
+      assert.strictEqual(JSON.parse(got[0]).text, 'line\u2028sep\u2029end');
+    });
+
+    // Mock pi: speaks enough of the rpc protocol to verify the session layer.
+    const mockPiCode = `
+      let buf = '';
+      let pendingAskId = null;
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (d) => { buf += d; let i;
+        while ((i = buf.indexOf('\\n')) >= 0) {
+          const line = buf.slice(0, i); buf = buf.slice(i + 1);
+          if (!line) continue;
+          let cmd; try { cmd = JSON.parse(line); } catch (e) { continue; }
+          if (cmd.type === 'extension_ui_response') {
+            // Dialog resolved by the host: the blocked command can now answer.
+            process.stdout.write(JSON.stringify({ id: pendingAskId, type: 'response', command: 'ask', success: true, data: { confirmed: cmd.confirmed === true } }) + '\\n');
+            pendingAskId = null;
+            continue;
+          }
+          if (cmd.type === 'prompt') {
+            process.stdout.write(JSON.stringify({ id: cmd.id, type: 'response', command: 'prompt', success: true, data: { disposition: 'started' } }) + '\\n');
+            process.stdout.write(JSON.stringify({ type: 'message_start', message: { role: 'assistant' } }) + '\\n');
+            process.stdout.write(JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'line\\u2028with-separators' } }) + '\\n');
+            process.stdout.write(JSON.stringify({ type: 'message_end', message: { role: 'assistant', content: [{ type: 'text', text: 'ok' }] } }) + '\\n');
+            process.stdout.write(JSON.stringify({ type: 'agent_settled', aborted: false }) + '\\n');
+          } else if (cmd.type === 'fail') {
+            process.stdout.write(JSON.stringify({ id: cmd.id, type: 'response', command: 'fail', success: false, error: 'boom' }) + '\\n');
+          } else if (cmd.type === 'ask') {
+            pendingAskId = cmd.id;
+            process.stdout.write(JSON.stringify({ type: 'extension_ui_request', id: 'ui-1', method: 'confirm', title: 'Allow?', message: 'bash' }) + '\\n');
+          } else if (cmd.type === 'quit') {
+            process.stdout.write(JSON.stringify({ id: cmd.id, type: 'response', command: 'quit', success: true, data: {} }) + '\\n');
+            process.exit(0);
+          } else {
+            process.stdout.write(JSON.stringify({ id: cmd.id, type: 'response', command: cmd.type, success: false, error: 'Unknown command: ' + cmd.type }) + '\\n');
+          }
+        }
+      });
+    `;
+    const mockPiPath = path.join(os.tmpdir(), 'pion-mock-pi-' + process.pid + '.js');
+    fs.writeFileSync(mockPiPath, mockPiCode, 'utf8'); // tmpdir: no cleanup needed
+
+    check('rpc session: response matching, event forwarding, errors, approval round-trip', async () => {
+      const events = [];
+      const s = new RpcSession({
+        bin: process.execPath,
+        args: [mockPiPath],
+        cwd: os.tmpdir(),
+        env: process.env,
+        onEvent: (ev) => events.push(ev),
+      });
+      s.start();
+      try {
+        const res = await s.request({ type: 'prompt', message: 'hi' });
+        assert.strictEqual(res.disposition, 'started', 'prompt response data');
+        await new Promise((r) => setTimeout(r, 120)); // let stdout events land
+        const types = events.map((e) => e.type);
+        assert.ok(types.includes('message_start'), 'message_start forwarded');
+        assert.ok(types.includes('message_end'), 'message_end forwarded');
+        const upd = events.find((e) => e.type === 'message_update');
+        assert.strictEqual(upd.assistantMessageEvent.delta, 'line\u2028with-separators',
+          'delta containing U+2028 must arrive intact');
+        assert.ok(types.includes('agent_settled'), 'agent_settled forwarded');
+
+        await assert.rejects(() => s.request({ type: 'fail' }), /boom/, 'failure response rejects');
+        await assert.rejects(() => s.request({ type: 'nope' }), /Unknown command|failed|exited/,
+          'unknown command must reject');
+
+        // approval round-trip: extension_ui_request arrives, host replies, command sees it
+        const askPromise = s.request({ type: 'ask' }, 500);
+        await new Promise((r) => setTimeout(r, 120));
+        s.proc.stdin.write(JSON.stringify({ type: 'extension_ui_response', id: 'ui-1', confirmed: true }) + '\n');
+        await askPromise; // mock just emits; ensure the write path doesn't throw
+        s.proc.stdin.write(JSON.stringify({ id: 'pion-x', type: 'approve', confirmed: true }) + '\n');
+        await new Promise((r) => setTimeout(r, 120));
+      } finally {
+        s.stop();
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      assert.strictEqual(s.alive, false, 'session dead after stop()');
+    });
+
+    check('rpc session: requests reject when the child is not running', async () => {
+      const s = new RpcSession({ bin: process.execPath, args: ['-e', ''], cwd: os.tmpdir(), env: process.env, onEvent: () => {} });
+      await assert.rejects(() => s.request({ type: 'prompt', message: 'x' }), /未运行|not running|pi rpc/,
+        'request on a dead session must reject');
+    });
+  }
+
+  await Promise.all(pendingAsyncChecks);
 
   console.log('\n' + (failures ? `FAILED: ${failures} check(s)\n` : 'ALL CHECKS PASSED\n'));
   process.exit(failures ? 1 : 0);

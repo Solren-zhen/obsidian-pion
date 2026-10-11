@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pion ↔ pi RPC 交互时序图</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --fg: #1f1e1b; --line: #d8d5cc; --accent: #7c6cf0;
+    --ok: #2e8b57; --warn: #c47f17; --err: #c0392b; --card: #ffffff; --dim: #8a877e;
+  }
+  html[data-theme="dark"] {
+    --bg: #16151a; --fg: #e8e6df; --line: #33323b; --accent: #9d8fff;
+    --ok: #5fbf8a; --warn: #e0a34a; --err: #e06055; --card: #1f1e25; --dim: #77747d;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.6 -apple-system, "PingFang SC", "Segoe UI", sans-serif; padding: 28px; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 19px; }
+  .sub { color: var(--dim); font-size: 13px; }
+  button { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; cursor: pointer; font-size: 12.5px; }
+  .seq-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; overflow-x: auto; }
+  svg text { font: 12.5px -apple-system, "PingFang SC", sans-serif; fill: var(--fg); }
+  svg .lane-label { font-weight: 600; font-size: 13px; }
+  svg .msg { fill: var(--fg); }
+  svg .note { fill: var(--dim); font-size: 11.5px; }
+  svg line, svg rect, svg path { stroke: var(--line); }
+  svg .arrow { stroke: var(--accent); stroke-width: 1.6; fill: none; marker-end: url(#ah); }
+  svg .arrow.err { stroke: var(--err); }
+  svg .arrow.ok { stroke: var(--ok); }
+  svg .life { stroke: var(--line); stroke-dasharray: 3 4; }
+  svg .tag { fill: var(--card); stroke: var(--line); }
+  svg .tag text { font-size: 11px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; color: var(--dim); font-size: 12.5px; }
+  .legend b { color: var(--fg); font-weight: 600; }
+  code { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; padding: 0 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pion ↔ pi RPC 交互时序</h1>
+  <span class="sub">obsidian-pion · --mode rpc 长驻子进程（pi ≥ 1.1）</span>
+  <button onclick="const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark'">切换主题</button>
+</header>
+
+<div class="seq-wrap">
+<svg viewBox="0 0 980 720" width="980" height="720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--accent)" stroke="none"/>
+    </marker>
+    <marker id="ah-err" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--err)" stroke="none"/>
+    </marker>
+  </defs>
+
+  <!-- lanes -->
+  <text class="lane-label" x="120" y="30" text-anchor="middle">面板 / PiChatView</text>
+  <text class="lane-label" x="470" y="30" text-anchor="middle">RpcSession（插件侧）</text>
+  <text class="lane-label" x="830" y="30" text-anchor="middle">pi --mode rpc 子进程</text>
+  <line class="life" x1="120" y1="40" x2="120" y2="690"/>
+  <line class="life" x1="470" y1="40" x2="470" y2="690"/>
+  <line class="life" x1="830" y1="40" x2="830" y2="690"/>
+
+  <!-- 1. ensure -->
+  <rect class="tag" x="30" y="58" width="180" height="22" rx="6"/><text x="120" y="73" text-anchor="middle">发送第一条消息</text>
+  <line class="arrow" x1="128" y1="92" x2="462" y2="92"/>
+  <text class="msg" x="295" y="86" text-anchor="middle">ensureRpc()（惰性启动）</text>
+  <line class="arrow" x1="478" y1="118" x2="822" y2="118"/>
+  <text class="msg" x="650" y="112" text-anchor="middle">spawn: --mode rpc --session-id &lt;conv&gt; [-e pi-approve.js]</text>
+  <line class="arrow ok" x1="822" y1="142" x2="478" y2="142"/>
+  <text class="note" x="650" y="136" text-anchor="middle">绑定 (mode, conversationId)，事件泵常驻</text>
+
+  <!-- 2. prompt -->
+  <rect class="tag" x="30" y="168" width="180" height="22" rx="6"/><text x="120" y="183" text-anchor="middle">空闲时发送</text>
+  <line class="arrow" x1="128" y1="204" x2="462" y2="204"/>
+  <text class="msg" x="295" y="198" text-anchor="middle">request({type:'prompt', message})</text>
+  <line class="arrow" x1="478" y1="230" x2="822" y2="230"/>
+  <text class="msg" x="650" y="224" text-anchor="middle">stdin JSONL · 自增 id</text>
+  <line class="arrow ok" x1="822" y1="254" x2="478" y2="254"/>
+  <text class="msg" x="650" y="248" text-anchor="middle">response {disposition: started|queued|handled}</text>
+
+  <!-- 3. streaming -->
+  <rect class="tag" x="30" y="278" width="180" height="22" rx="6"/><text x="120" y="293" text-anchor="middle">流式渲染</text>
+  <line class="arrow ok" x1="822" y1="312" x2="474" y2="312"/>
+  <text class="msg" x="650" y="306" text-anchor="middle">session 事件（与 --mode json 同形）</text>
+  <line class="arrow" x1="462" y1="336" x2="128" y2="336"/>
+  <text class="msg" x="295" y="330" text-anchor="middle">handleEvent() → 打字机 / 工具卡 / diff</text>
+  <text class="note" x="650" y="356" text-anchor="middle">message_update(text_delta/thinking_delta) · tool_execution_* · auto_retry_* → 状态栏</text>
+
+  <!-- 4. steer -->
+  <rect class="tag" x="30" y="378" width="180" height="22" rx="6"/><text x="120" y="393" text-anchor="middle">运行中再发消息</text>
+  <line class="arrow" x1="128" y1="414" x2="462" y2="414"/>
+  <text class="msg" x="295" y="408" text-anchor="middle">queueMode=steer → request({type:'steer'})</text>
+  <line class="arrow" x1="478" y1="440" x2="822" y2="440"/>
+  <text class="msg" x="650" y="434" text-anchor="middle">followUp 模式则 type:'follow_up'</text>
+  <line class="arrow ok" x1="822" y1="464" x2="474" y2="464"/>
+  <text class="msg" x="650" y="458" text-anchor="middle">queue_update 事件 → 状态栏「待发送 N 条」</text>
+
+  <!-- 5. approval -->
+  <rect class="tag" x="30" y="488" width="180" height="22" rx="6"/><text x="120" y="503" text-anchor="middle">工具审批（可配置）</text>
+  <line class="arrow ok" x1="822" y1="522" x2="474" y2="522"/>
+  <text class="msg" x="650" y="516" text-anchor="middle">extension_ui_request {method:'confirm'}（来自 pi-approve.js 的 tool_call 钩子）</text>
+  <line class="arrow" x1="462" y1="548" x2="128" y2="548"/>
+  <text class="msg" x="295" y="542" text-anchor="middle">ApprovalModal（原生弹窗：允许 / 拒绝）</text>
+  <line class="arrow" x1="128" y1="574" x2="462" y2="574"/>
+  <text class="msg" x="295" y="568" text-anchor="middle">extension_ui_response {confirmed}</text>
+  <line class="arrow ok" x1="478" y1="598" x2="822" y2="598"/>
+  <text class="msg" x="650" y="592" text-anchor="middle">拒绝 → {block:true}，工具调用被拦截</text>
+
+  <!-- 6. abort / lifecycle -->
+  <rect class="tag" x="30" y="620" width="180" height="22" rx="6"/><text x="120" y="635" text-anchor="middle">中止 / 关闭</text>
+  <line class="arrow err" x1="128" y1="654" x2="462" y2="654"/>
+  <text class="msg" x="295" y="648" text-anchor="middle">abort() → request({type:'abort'})，1.4s 未响应才 SIGKILL</text>
+  <line class="arrow ok" x1="822" y1="678" x2="474" y2="678"/>
+  <text class="msg" x="650" y="672" text-anchor="middle">agent_settled{aborted:true} · 关闭 stdin = 优雅退出(code 0)</text>
+</svg>
+</div>
+
+<div class="legend">
+  <span><b>json 兜底：</b>设置里切换 <code>piTransport: json</code> 时走旧的一次性 spawn（<code>--mode json -p</code>），无运行中交互/审批</span>
+  <span><b>分帧：</b>LF 手写分帧（StringDecoder），协议禁止 readline——U+2028/U+2029 是 JSON 字符串合法字符</span>
+  <span><b>审批：</b><code>approveTools</code> 默认 <code>bash,write,edit</code>，<code>*</code>=全部，空=关闭</span>
+</div>
+</body>
+</html>

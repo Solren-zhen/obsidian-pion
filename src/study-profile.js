@@ -590,7 +590,7 @@ description: 带用户复习笔记与错题本，安排间隔重复。当用户�
 1. 找出待复习内容：
    - \`grep -rl "#flashcards"\` 找有卡片的笔记
    - ${cfg.mistakeBook ? `读错题本 \`${cfg.mistakeBook}\` 与各章节下的错题笔记` : '读错题笔记'}
-   - 关注 \`${cfg.statusField}: ${cfg.statusValues[0]} | ${cfg.statusValues[1] || ''}\` 的条目（薄弱点）
+   - 关注 \`${cfg.statusField}: ${cfg.statusValues.slice(0, 2).join(' | ')}\` 的条目（薄弱点）
    - ${cfg.dailyLog ? `看 \`${cfg.dailyLog}\` 里最近几天学过什么` : '看最近修改过的学习笔记'}
 2. **按优先级排**，而不是按目录顺序：
    1. \`${cfg.statusValues[0]}\` 优先

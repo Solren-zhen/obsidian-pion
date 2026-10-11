@@ -97,6 +97,22 @@ the persona language (`zh` / `en`). Card separators are **auto-detected** from y
 [obsidian-spaced-repetition](https://github.com/st3v3nmw/obsidian-spaced-repetition) config.
 Existing generated files are never overwritten, so your edits survive upgrades.
 
+### Panel tools (study mode)
+
+Two toolbar buttons appear only in study mode:
+
+- **生成复习清单** — the plugin itself reads the mastery field of your notes (Obsidian's
+  in-memory metadata cache; no extra processes) and computes the review queue for you:
+  weak statuses first, stalest next, capped at the top 15 with a per-status tally. The
+  list lands in your input box as a ready-to-send prompt, so scheduling is done by code
+  and the coach only has to teach.
+- **导出学习记录** — appends the current conversation (trimmed, plus the current weak
+  spots) as a timestamped section to a dated 学习记录 note under your configured 日志/计划
+  directory. Learning results land in the vault instead of staying in the panel's own
+  data.json.
+
+Both features write exclusively inside your vault; nothing in `~/.pi` is touched.
+
 ## Coding mode
 
 Your normal pi, rendered in Obsidian:
@@ -162,11 +178,11 @@ and a **recommendation**, which per the directory docs do not block publication.
 #### Filesystem access outside the vault — *warning*
 
 The Node `fs` module can touch any file the process can reach. What this plugin actually does
-with it is deliberately narrow — **20 call sites** in the whole codebase, and only these methods:
+with it is deliberately narrow — **21 call sites** in the whole codebase, and only these methods:
 
 ```
-existsSync (9)  writeFileSync (3)  unlinkSync (3)
-lstatSync (1)   mkdirSync (1)      readFileSync (1)
+existsSync (10)  writeFileSync (4)  unlinkSync (3)
+lstatSync (1)    mkdirSync (1)      readFileSync (1)
 readlinkSync (1)  symlinkSync (1)
 ```
 
@@ -177,6 +193,7 @@ There is no `readdirSync`, no `rm`, no `rmdir`, and no recursion over your vault
 | `~/.pi/agent/` | `existsSync`, `lstatSync`, `readlinkSync` | check your credentials exist before linking; detect stale links |
 | `<vault>/.obsidian/pi-study/` | `mkdirSync`, `symlinkSync`, `writeFileSync`, `existsSync`, `unlinkSync` | create and repair the isolated study profile |
 | `<vault>/.obsidian/plugins/obsidian-spaced-repetition/data.json` | `readFileSync` (1 site) | read-only: detect your flashcard separators |
+| plugin directory | `writeFileSync` (1 site) | materialise the tool-approval extension `pi-approve.js` (fixed content built into the plugin) |
 
 - **Credential contents are never read or copied.** Only a symlink is created, and a symlink
   stores a path, not data. This is what lets you avoid configuring API keys twice.
@@ -202,7 +219,20 @@ Pion runs your local agent as a subprocess. Specifics:
 - The subprocess runs with your user's permissions, and the agent's own tools (`bash`, `write`,
   `edit`) can then act on whatever you granted via the tools setting. **That is the point of the
   plugin** — it is an agent front-end — and it is also why *require approval* exists as a
-  send-time confirmation gate.
+  send-time confirmation gate, plus — in the default **RPC transport** — a per-tool-call
+  approval modal (see below).
+- **RPC transport (default for the pi backend).** One long-lived `pi --mode rpc` child process
+  is kept per conversation while you chat, talking JSONL over stdin/stdout. Closing the panel,
+  switching conversations, or unloading the plugin closes the child's stdin, which pi treats as
+  a graceful shutdown; a SIGKILL fallback exists for a hung child. The child inherits your
+  environment and runs with your user's permissions, exactly like the one-shot mode it
+  replaces. The older one-shot transport (`--mode json`) remains selectable in settings.
+- **Tool-approval extension.** With RPC, the plugin writes a small file `pi-approve.js` (its
+  content is fixed, built into the plugin) into the plugin's own directory and loads it into
+  the child with `pi -e`. The extension's only job: for tools matching your *工具审批* setting
+  (default `bash,write,edit`), route the call through a confirmation dialog that surfaces in
+  Obsidian as a native allow/deny modal. It adds no capabilities the child does not already
+  have; it only adds a gate. Set the option to 关闭 to not load it at all.
 
 #### Clipboard access — *recommendation*
 
